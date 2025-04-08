@@ -1,0 +1,55 @@
+
+services:
+  devcontainer:
+    image: mcr.microsoft.com/devcontainers/python:1-3.12-bullseye
+
+    volumes:
+      - ".:/workspace:cached"
+    environment:
+      - PORT=80
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    env_file:
+      - .env
+    command: ["sleep", "infinity"]
+
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - "8002:80"
+    volumes:
+      - pgadmin_volume:/var/lib/pgadmin
+    network_mode: "host"
+
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=user@example.com
+      - PGADMIN_DEFAULT_PASSWORD=12345
+      - PGADMIN_CONFIG_SERVER_MODE=False
+      - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
+
+
+  redis:
+    image: redis/redis-stack:latest
+    ports:
+       - "6379:6379"
+       - "8001:8001"
+    volumes:
+      - redis_volume:/data
+
+  
+  db:
+    image: postgres:latest
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports: ["5432:5432"]
+    env_file:
+      - .env
+
+
+volumes:
+  pgdata:
+  pgadmin_volume:
+  redis_volume:

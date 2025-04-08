@@ -1,0 +1,9 @@
+@startuml
+object "hello" as node
+object "hi" as node1
+object "something" as something
+object "something1" as something1
+node -> node1
+node -> something
+node -> something1
+@enduml
