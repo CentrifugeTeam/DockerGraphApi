@@ -1,5 +1,6 @@
 import json
 from io import StringIO
+from uuid import UUID
 
 import networkx as nx
 from fastapi import APIRouter
@@ -12,16 +13,20 @@ from ..graph.manager import graph_manager
 r = APIRouter(prefix='/json')
 
 
-def create_mindmap_from_networks(networks: list['Network'], data: dict):
-    data['networks'] = []
+def create_mindmap_from_networks(networks: list['Network']):
+    data = []
     for network in networks:
-        data['networks'].append(network.model_dump())
+        data.append({**network.model_dump(exclude={'host_id', "containers"}),
+                    'containers': [cont.model_dump(exclude={'network_id', 'last_active', 'created_at'}) for cont in network.containers]})
+    return data
 
 
 @r.get('', response_class=StreamingResponse)
-async def plantuml(session: Session):
-
-    nodes, edges = await graph_manager.get_graph(session)
+async def plantuml(session: Session, id: UUID | None = None):
+    if id:
+        nodes, edges = await graph_manager.get_graph_by_id(session, id)
+    else:
+        nodes, edges = await graph_manager.get_graph(session)
     graph = nx.Graph()
     graph.add_nodes_from(
         [(node.id, {'name': node.hostname, "networks": node.networks}) for node in nodes])
@@ -38,18 +43,24 @@ async def plantuml(session: Session):
         for neighbor in graph.neighbors(node):
             if neighbor in visited:
                 continue
-            neighbors.append({'name': graph.nodes[neighbor]['name']})
-            create_mindmap_from_networks(
-                graph.nodes[neighbor]['networks'], neighbor)
+            networks = create_mindmap_from_networks(
+                graph.nodes[neighbor]['networks'])
+
+            neighbors.append(
+                {'name': graph.nodes[neighbor]['name'], 'networks': networks})
 
             visited.add(neighbor)
 
-        create_mindmap_from_networks(
-            graph.nodes[node]['networks'], host)
+        networks = create_mindmap_from_networks(
+            graph.nodes[node]['networks'])
+        host['networks'] = networks
         hosts.append(host)
         visited.add(node)
 
-    return StreamingResponse(StringIO.write(json.dumps(response)), media_type="application/json",
+    buffer = StringIO()
+    buffer.write(json.dumps(response))
+    buffer.seek(0)
+    return StreamingResponse(buffer, media_type="application/json",
                              headers={
-                                 "Content-Disposition": "attachment; filename=graph.puml",
-                                 "Content-Type": "text/plain; charset=utf-8"})
+                                 "Content-Disposition": "attachment; filename=graph.json",
+                                 "Content-Type": "application/json; charset=utf-8"})

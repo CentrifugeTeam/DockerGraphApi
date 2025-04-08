@@ -20,6 +20,7 @@ dependencies = [
     "asyncpg>=0.30.0",
     "fastapi>=0.115.11",
     "fastapi-sqlalchemy-toolkit>=0.7.12",
+    "matplotlib>=3.10.1",
     "networkx>=3.4.2",
     "pydantic-settings>=2.8.1",
     "redis>=5.2.1",

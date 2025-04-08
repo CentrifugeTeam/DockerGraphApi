@@ -8,10 +8,11 @@ from fastapi.responses import StreamingResponse
 from ...db import Network
 from ...deps import Session
 from ..graph.manager import graph_manager
-from . import json
+from . import json, png
 
 r = APIRouter(prefix='/export')
 r.include_router(json.r)
+r.include_router(png.r)
 
 
 def create_mindmap_from_networks(buffer: StringIO, networks: list[Network], start='**'):
