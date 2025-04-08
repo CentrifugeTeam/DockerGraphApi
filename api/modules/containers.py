@@ -20,6 +20,7 @@ class ContainerBase(BaseModel):
     image: str
     container_id: str
     status: str
+    packets_number: int | None = None
     ip: str
     created_at: datetime
     last_active: datetime | None
@@ -98,10 +99,11 @@ async def batch_create(batch: ContainersBatchCreate, session: Session, agent: Ag
     await session.commit()
     cons = await session.exec(select(Container).join(Network, Network.id == Container.network_id).where(
         Container.id.not_in([container.id for container in containers]
-    )).where(Network.host_id == agent.id))
+                            )).where(Network.host_id == agent.id))
     for container in cons:
         await session.delete(container)
-    stmt = delete(Network).where(Network.id.not_in([network.id for network in networks])).where(Network.host_id == agent.id)
+    stmt = delete(Network).where(Network.id.not_in(
+        [network.id for network in networks])).where(Network.host_id == agent.id)
     await session.exec(stmt)
     await session.commit()
 
